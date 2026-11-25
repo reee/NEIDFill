@@ -1,3 +1,4 @@
+using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NEIDFill.Core.IdCard;
 
@@ -15,7 +16,7 @@ namespace NEIDFill.Core.Tests
         [TestMethod]
         public void 空数组返回空串()
         {
-            Assert.AreEqual("", Gb18030Codec.Decode(new byte[0]));
+            Assert.AreEqual("", Gb18030Codec.Decode(Array.Empty<byte>()));
         }
 
         [TestMethod]

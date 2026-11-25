@@ -19,8 +19,8 @@ namespace NEIDFill.Core.Typing
         public const int DefaultDedupeMs = 2000;
 
         /// <summary>按固定优先级判定：开关 → 空号 → 目标可用性 → 自身前台 → 同号去抖。</summary>
-        public static TypeDecision Decide(bool enabled, ForegroundKind target, string id,
-            string lastTypedId, int lastTypedTick, int nowTick, int dedupeMs = DefaultDedupeMs)
+        public static TypeDecision Decide(bool enabled, ForegroundKind target, string? id,
+            string? lastTypedId, int lastTypedTick, int nowTick, int dedupeMs = DefaultDedupeMs)
         {
             if (!enabled) return TypeDecision.Disabled;
             if (string.IsNullOrEmpty(id)) return TypeDecision.EmptyId;

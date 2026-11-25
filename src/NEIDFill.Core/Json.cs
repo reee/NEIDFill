@@ -7,7 +7,7 @@ namespace NEIDFill.Core
 {
     /// <summary>
     /// 极简 JSON 解析（设置文件用），不引入第三方 JSON 库。
-    /// Parse 返回值约定：对象=Dictionary&lt;string,object&gt;、数组=List&lt;object&gt;、
+    /// Parse 返回值约定：对象=Dictionary&lt;string,object?&gt;、数组=List&lt;object?&gt;、
     /// 字符串=string、数字=double、布尔=bool、null=null。
     /// </summary>
     public static class Json
@@ -15,32 +15,19 @@ namespace NEIDFill.Core
         // 递归深度上限：防止构造的深层嵌套输入触发不可捕获的 StackOverflowException
         private const int MaxDepth = 64;
 
-        public static object Parse(string json)
+        public static object? Parse(string? json)
         {
             if (json == null) throw new FormatException("JSON 为空");
             int i = 0;
-            object v = ParseValue(json, ref i, 0);
+            object? v = ParseValue(json, ref i, 0);
             SkipWs(json, ref i);
             if (i != json.Length) throw new FormatException("JSON 尾部有多余内容");
             return v;
         }
 
-        // ------------------------------------------------------------- 取值助手
-
-        /// <summary>从解析结果对象取整数字段；缺失/非数返回 0。</summary>
-        public static int GetInt(object node, string key)
-        {
-            Dictionary<string, object> o = node as Dictionary<string, object>;
-            if (o == null) return 0;
-            object v;
-            if (!o.TryGetValue(key, out v)) return 0;
-            double d = v is double ? (double)v : 0;
-            return (int)d;
-        }
-
         // ------------------------------------------------------------- 解析
 
-        private static object ParseValue(string s, ref int i, int depth)
+        private static object? ParseValue(string s, ref int i, int depth)
         {
             SkipWs(s, ref i);
             if (i >= s.Length) throw new FormatException("JSON 意外结束");
@@ -54,10 +41,10 @@ namespace NEIDFill.Core
             return ParseNumber(s, ref i);
         }
 
-        private static Dictionary<string, object> ParseObject(string s, ref int i, int depth)
+        private static Dictionary<string, object?> ParseObject(string s, ref int i, int depth)
         {
             if (depth > MaxDepth) throw new FormatException("JSON 嵌套过深");
-            var o = new Dictionary<string, object>();
+            var o = new Dictionary<string, object?>();
             i++; // '{'
             SkipWs(s, ref i);
             if (i < s.Length && s[i] == '}') { i++; return o; }
@@ -78,10 +65,10 @@ namespace NEIDFill.Core
             }
         }
 
-        private static List<object> ParseArray(string s, ref int i, int depth)
+        private static List<object?> ParseArray(string s, ref int i, int depth)
         {
             if (depth > MaxDepth) throw new FormatException("JSON 嵌套过深");
-            var a = new List<object>();
+            var a = new List<object?>();
             i++; // '['
             SkipWs(s, ref i);
             if (i < s.Length && s[i] == ']') { i++; return a; }

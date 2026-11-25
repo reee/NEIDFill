@@ -17,14 +17,18 @@ namespace NEIDFill.Devices.IdReader
     /// 本程序只取号码不读回人像：芯片人像由厂商 DLL 写入临时目录内 photo.jpg，本类只负责清理该临时文件。
     /// 读卡失败只抛异常、不断开连接；仅设备级异常（拔线/驱动）才复位连接。
     /// 空闲时每 60 秒静默重建会话（CloseComm+InitComm），保证拔插读卡器后旧句柄失效也能自愈；重建失败抛异常交上层转自动重连。
+    /// 连接通道自动依次探测 1001/2001/2002，不支持手动选择。
     /// 非线程安全：由调用方保证单实例使用。
     /// </summary>
     public sealed class UsbIdCardReader
     {
         private static readonly int[] PortCandidates = { 1001, 2001, 2002 };
 
-        /// <summary>读卡轮询间隔（CardOn 等卡与 Authenticate 尝试共用；原程序 worker 亦为高频轮询）。</summary>
+        /// <summary>卡在位时的轮询间隔（CardOn 等卡与 Authenticate 尝试共用；原程序 worker 亦为高频轮询）。</summary>
         private const int PollIntervalMs = 150;
+
+        /// <summary>无卡空闲轮询间隔：长时间等卡降 CPU；一判定在位即切回 PollIntervalMs，保边沿检测与重试节奏。</summary>
+        private const int IdlePollIntervalMs = 400;
 
         /// <summary>检测到卡在位后的尝试预算：覆盖用户按提示「拿开重放」的 1～2 轮操作；无卡时不计时间。</summary>
         private const int ReadBudgetMs = 30000;
@@ -34,49 +38,36 @@ namespace NEIDFill.Devices.IdReader
 
         private volatile bool _open;
         private volatile bool _cancelRead;
-        private readonly int _preferredPort;
         private readonly string _photoDir;
 
-        /// <param name="preferredPort">FillSettings.ReaderPort，0 表示自动探测。</param>
-        public UsbIdCardReader(int preferredPort)
+        public UsbIdCardReader()
         {
-            _preferredPort = preferredPort;
             // 照片临时目录放 TEMP 而非 exe 目录：装机到 Program Files 后普通权限不可写
             _photoDir = Path.Combine(Path.GetTempPath(), "NEIDFill_chip");
             try { Directory.CreateDirectory(_photoDir); } catch (Exception) { }
+            // 隐私：上次进程崩溃/断电可能残留 photo.jpg，本次会话开始前先清掉（吞异常策略与其余清理点一致）
+            TryDeletePhoto();
         }
 
         public bool IsConnected { get { return _open; } }
 
-        public bool TryConnect(out string method)
+        public bool TryConnect()
         {
             _cancelRead = false;
-            return TryConnectCore(out method);
+            return TryConnectCore();
         }
 
-        /// <summary>断开并重建会话（Disconnect + 端口探测）。不碰 _cancelRead：供 Read 空闲自愈静默调用，避免清掉并发到达的取消。</summary>
-        private bool TryConnectCore(out string method)
+        /// <summary>断开并重建会话（Disconnect + 依次探测候选通道）。不碰 _cancelRead：供 Read 空闲自愈静默调用，避免清掉并发到达的取消。</summary>
+        private bool TryConnectCore()
         {
-            method = null;
             Disconnect();
 
-            // 指定端口先探一遍；失败后回退候选时跳过重复端口，并把回退信息写进 method 供 UI 展示
-            if (_preferredPort > 0 && SdtNative.InitComm(_preferredPort) == 1)
-            {
-                _open = true;
-                method = "USB 身份证阅读器（通道 " + _preferredPort + "）";
-                return true;
-            }
-
+            // 自动依次探测候选通道，命中即连接（探测顺序即优先级，成功与否由 _open 体现）
             foreach (int port in PortCandidates)
             {
-                if (port == _preferredPort) continue; // 指定端口刚探过，不重复
                 if (SdtNative.InitComm(port) != 1) continue;
 
                 _open = true;
-                method = "USB 身份证阅读器（通道 " + port + "）";
-                if (_preferredPort > 0)
-                    method += "；指定通道 " + _preferredPort + " 不可用";
                 return true;
             }
             return false;
@@ -116,12 +107,12 @@ namespace NEIDFill.Devices.IdReader
                         else if (type > 0)
                         {
                             snap = null;
-                            failure = "未识别的卡类型（" + type + "）。支持：大陆居民身份证、外国人永久居留证、港澳台居民居住证";
+                            failure = "未识别的卡类型（" + type + "）";
                         }
                         else
                         {
                             snap = null;
-                            failure = "证件类型判定失败（返回码 " + type + "），请重新放卡";
+                            failure = "证件类型判定失败（" + type + "）";
                         }
 
                         if (snap != null) return snap;
@@ -138,7 +129,7 @@ namespace NEIDFill.Devices.IdReader
                         {
                             // 预算内从未认证成功则报认证未就绪，否则报最近一次分型失败原因
                             failureMessage = lastFailure ??
-                                "已检测到证件，但认证未就绪。请将证件拿开 3 秒后重新平放在读卡器正中央";
+                                "认证未就绪，请拿开证件 3 秒后重放";
                         }
                     }
                     else
@@ -149,13 +140,15 @@ namespace NEIDFill.Devices.IdReader
                         // 抛异常交上层走 !IsConnected → TryConnect 的自动重试路径，设备插回后自愈
                         if (unchecked(Environment.TickCount - idleStart) >= IdleReconnectMs)
                         {
-                            if (!TryConnectCore(out _))
-                                throw new InvalidOperationException("读卡器连接已断开，正在重新连接……");
+                            if (!TryConnectCore())
+                                throw new InvalidOperationException("连接断开，正在重连…");
                             idleStart = Environment.TickCount;
                         }
                     }
 
-                    Thread.Sleep(PollIntervalMs);
+                    // 自适应轮询取舍：无卡 400ms 省 CPU，判定在位后 150ms 保 Authenticate 边沿低延迟与 300ms 级重试；
+                    // 在位预算与空闲重建均按 unchecked TickCount 差值计时，不受睡眠间隔粒度影响
+                    Thread.Sleep(onCard ? PollIntervalMs : IdlePollIntervalMs);
                 }
             }
             catch (OperationCanceledException) { throw; }
@@ -192,7 +185,7 @@ namespace NEIDFill.Devices.IdReader
             failure = null;
             if (rc != 1)
             {
-                failure = "读取证件失败（返回码 " + rc + "），请将证件拿开 3 秒后重新平放";
+                failure = "读取失败（" + rc + "），请拿开证件 3 秒后重放";
                 return;
             }
 
@@ -201,7 +194,7 @@ namespace NEIDFill.Devices.IdReader
             // 芯片数据可信但偶发空缓冲，号码不完整按失败继续轮询。
             if (id.Length != 18 || !IdValidator.IsValid(id))
             {
-                failure = "号码校验未通过，请将证件拿开 3 秒后重新平放";
+                failure = "号码校验未通过，请拿开证件 3 秒后重放";
                 return;
             }
 
@@ -246,7 +239,7 @@ namespace NEIDFill.Devices.IdReader
             failure = null;
             if (rc != 1)
             {
-                failure = "读取证件失败（返回码 " + rc + "），请将证件拿开 3 秒后重新平放";
+                failure = "读取失败（" + rc + "），请拿开证件 3 秒后重放";
                 return;
             }
 
@@ -254,7 +247,7 @@ namespace NEIDFill.Devices.IdReader
             string id = Decode(code);
             if (id.Length == 0)
             {
-                failure = "证件号码为空，读取失败";
+                failure = "证件号码为空";
                 return;
             }
             snap = new IdCardSnapshot
@@ -295,7 +288,7 @@ namespace NEIDFill.Devices.IdReader
             failure = null;
             if (rc != 1)
             {
-                failure = "读取证件失败（返回码 " + rc + "），请将证件拿开 3 秒后重新平放";
+                failure = "读取失败（" + rc + "），请拿开证件 3 秒后重放";
                 return;
             }
 
@@ -303,7 +296,7 @@ namespace NEIDFill.Devices.IdReader
             string id = Decode(cardNo);
             if (id.Length == 0)
             {
-                failure = "证件号码为空，读取失败";
+                failure = "证件号码为空";
                 return;
             }
             snap = new IdCardSnapshot

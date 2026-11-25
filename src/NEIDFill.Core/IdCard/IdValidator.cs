@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace NEIDFill.Core.IdCard
@@ -20,26 +21,31 @@ namespace NEIDFill.Core.IdCard
             "50", "51", "52", "53", "54",          // 西南
             "61", "62", "63", "64", "65",          // 西北
             "71",                                  // 台湾
-            "81", "82", "91"                       // 港澳、国外
+            "81", "82", "83",                      // 港澳、台湾居民居住证（810000/820000/830000 号段）
+            "91"                                   // 国外
         };
 
         private static readonly int[] Weights = { 7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2 };
         private const string CheckCodes = "10X98765432";
 
-        /// <summary>归一化输入：去空白、X 统一大写。</summary>
-        public static string Normalize(string input)
+        /// <summary>归一化输入：去除全部 Unicode 空白（含 U+3000 全角空格、制表符）、X 统一大写。</summary>
+        public static string? Normalize(string? input)
         {
             if (input == null) return null;
-            return input.Trim().Replace(" ", "").ToUpperInvariant();
+            StringBuilder sb = new StringBuilder(input.Length);
+            foreach (char c in input.Trim())
+                if (!char.IsWhiteSpace(c)) sb.Append(c);
+            return sb.ToString().ToUpperInvariant();
         }
 
         /// <summary>返回校验结果；失败时 error 指出第一个不通过的原因。</summary>
-        public static bool Validate(string id, out string error)
+        public static bool Validate(string? id, out string? error)
         {
             error = null;
             id = Normalize(id);
 
-            if (string.IsNullOrEmpty(id))
+            // 显式判空而非 IsNullOrEmpty：.NET Framework 引用程序集无 null 测试注解，编译器无法据此断定 id 非空
+            if (id == null || id.Length == 0)
             {
                 error = "身份证号不能为空";
                 return false;
@@ -77,9 +83,9 @@ namespace NEIDFill.Core.IdCard
             return true;
         }
 
-        public static bool IsValid(string id)
+        public static bool IsValid(string? id)
         {
-            string ignored;
+            string? ignored;
             return Validate(id, out ignored);
         }
 

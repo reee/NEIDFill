@@ -25,3 +25,32 @@ end_of_line = crlf
 csharp_new_line_before_open_brace = all
 csharp_using_directive_placement = outside_namespace:silent
 dotnet_sort_system_directives_first = true
+
+# ---- .NET 分析器按文件抑制（每条附理由）----
+
+# 测试方法名用下划线分隔中文场景描述，是有意的可读性写法，不适用 Pascal 命名
+# 注：需写成 tests/**（相对仓库根），**/tests/** 不会匹配根下第一层的 tests 目录
+[tests/**/*.cs]
+dotnet_diagnostic.CA1707.severity = none
+
+# IdCardSnapshot 是刻意的轻量 DTO，公开字段即其建模方式
+[src/NEIDFill.Core/IdCard/IdCardSnapshot.cs]
+dotnet_diagnostic.CA1051.severity = none
+
+# FillSettings 是设置模型：公开字段刻意为之，显式写出默认值是刻意的自文档化
+[src/NEIDFill.Core/Settings/FillSettings.cs]
+dotnet_diagnostic.CA1051.severity = none
+dotnet_diagnostic.CA1805.severity = none
+
+# 厂商 Sdtapi.dll 只接受 ANSI 字符串，DllImport 已显式 CharSet.Ansi，不能改 Unicode
+[src/NEIDFill.Devices/IdReader/SdtNative.cs]
+dotnet_diagnostic.CA2101.severity = none
+
+# CloseComm 关闭失败无法恢复也无须处理，返回值有意忽略
+[src/NEIDFill.Devices/IdReader/UsbIdCardReader.cs]
+dotnet_diagnostic.CA1806.severity = none
+
+# GetClassName 用 StringBuilder 是 Win32 常见签名，不改；GetWindowThreadProcessId 返回值（线程 id）不需要，pid 走 out 参数，有意忽略
+[src/NEIDFill/KeyboardTyper.cs]
+dotnet_diagnostic.CA1838.severity = none
+dotnet_diagnostic.CA1806.severity = none

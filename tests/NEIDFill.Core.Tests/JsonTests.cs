@@ -22,15 +22,6 @@ namespace NEIDFill.Core.Tests
         }
 
         [TestMethod]
-        public void GetInt_数字缺失与非数字()
-        {
-            object o = Json.Parse("{\"n\":7,\"s\":\"x\"}");
-            Assert.AreEqual(7, Json.GetInt(o, "n"));
-            Assert.AreEqual(0, Json.GetInt(o, "missing"));
-            Assert.AreEqual(0, Json.GetInt(o, "s"));
-        }
-
-        [TestMethod]
         public void 转义字符串解码()
         {
             string s = (string)Json.Parse(@"""a\""b\\c\/d\b\f\n\r\t\u4e2d""");

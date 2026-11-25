@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "ci-${{ github.ref }}"
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  build-test:
+    name: Build & Test (net48 / x86)
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: '8.0.x'
+
+      # 与本地/其它 CI 共用同一入口：Release 构建 → --no-build 跑测试，失败非 0
+      - name: Build and test
+        shell: cmd
+        run: scripts\ci.cmd
+
+      # Release 打包：校验 9 个部署文件后生成 dist\NEIDFill-<FileVersion>\ 与同名 .zip
+      - name: Publish
+        shell: cmd
+        run: scripts\publish.cmd
+
+      - name: Upload release zip
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: NEIDFill-release
+          path: dist/*.zip
+          if-no-files-found: error

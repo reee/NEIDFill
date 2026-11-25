@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <LangVersion>7.3</LangVersion>
+    <LangVersion>8.0</LangVersion>
     <!-- 版本策略：AssemblyVersion/ProductVersion 固定 1.0.0（稳定，不随构建漂移）；
          构建时刻只进 FileVersion，格式 yyyy.MM.dd.HHmm（如 2026.11.25.1530），供 UI 标题与文件属性展示。 -->
     <Version>1.0.0</Version>
@@ -13,5 +13,12 @@
     <DebugType>portable</DebugType>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
+    <!-- .NET 编译器分析器：启用官方 Recommended 规则集；
+         不在这里开 TreatWarningsAsErrors，零告警由 CI（scripts/ci.cmd）的 -warnaserror 守住。
+         规则集固定到 8.0 而非 latest：global.json 允许 latestMajor，避免升级 SDK 后新增规则
+         让 -warnaserror 意外失败（CI 固定 .NET 8.0.x）。 -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>8.0</AnalysisLevel>
+    <AnalysisMode>Recommended</AnalysisMode>
   </PropertyGroup>
 </Project>

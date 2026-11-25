@@ -2,6 +2,8 @@
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
     <RootNamespace>NEIDFill.Core</RootNamespace>
+    <!-- 纯逻辑核心库：开启可空引用类型，public API 显式标注 string?/object? 契约 -->
+    <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />

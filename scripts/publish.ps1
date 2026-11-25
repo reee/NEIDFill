@@ -40,7 +40,10 @@ try {
     foreach ($f in $whitelist) {
         Copy-Item -LiteralPath (Join-Path $outDir $f) -Destination $stageDir
     }
-    Copy-Item -LiteralPath (Join-Path $root 'README.md') -Destination $stageDir
+    # 文档随包分发：README 引用了第三方声明，LICENSE/CHANGELOG 也应随制品提供
+    foreach ($doc in @('README.md', 'LICENSE', 'THIRD-PARTY-NOTICES.md', 'CHANGELOG.md')) {
+        Copy-Item -LiteralPath (Join-Path $root $doc) -Destination $stageDir
+    }
 
     Compress-Archive -Path (Join-Path $stageDir '*') -DestinationPath $zipPath -Force
 

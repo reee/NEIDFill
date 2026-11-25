@@ -17,7 +17,7 @@ namespace NEIDFill.Core.IdCard
             catch (ArgumentException) { return Encoding.UTF8; } // 极端精简系统缺代码页：不至于崩，仅可能乱码
         }
 
-        public static string Decode(byte[] buf)
+        public static string Decode(byte[]? buf)
         {
             if (buf == null) return "";
             int end = 0;

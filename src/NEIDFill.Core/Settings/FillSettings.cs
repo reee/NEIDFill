@@ -1,16 +1,14 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Text;
 
 namespace NEIDFill.Core.Settings
 {
-    /// <summary>NEIDFill（读卡→键入前台）小工具的设置。</summary>
+    /// <summary>NEIDFill（读卡→键入前台）小工具的设置。
+    /// 旧版配置里的 readerPort 字段不再读取（读卡通道始终自动探测），未知字段一律忽略。</summary>
     public sealed class FillSettings
     {
-        /// <summary>读卡器端口参数；0 = 启动时自动探测。</summary>
-        public int ReaderPort = 0;
         /// <summary>读卡后自动键入前台输入框。</summary>
         public bool AutoType = true;
         /// <summary>键入后追加回车。</summary>
@@ -23,12 +21,10 @@ namespace NEIDFill.Core.Settings
             {
                 if (!File.Exists(path)) return s;
                 string json = File.ReadAllText(path, Encoding.UTF8);
-                Dictionary<string, object> o = Json.Parse(json) as Dictionary<string, object>;
+                Dictionary<string, object?>? o = Json.Parse(json) as Dictionary<string, object?>;
                 if (o == null) return s;
 
-                s.ReaderPort = ClampPort(Json.GetInt(o, "readerPort"));
-
-                object v;
+                object? v;
                 if (o.TryGetValue("autoType", out v) && v is bool) s.AutoType = (bool)v;
                 if (o.TryGetValue("appendEnter", out v) && v is bool) s.AppendEnter = (bool)v;
             }
@@ -43,7 +39,6 @@ namespace NEIDFill.Core.Settings
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("{");
-            sb.AppendLine("  \"readerPort\": " + ReaderPort.ToString(CultureInfo.InvariantCulture) + ",");
             sb.AppendLine("  \"autoType\": " + (AutoType ? "true" : "false") + ",");
             sb.AppendLine("  \"appendEnter\": " + (AppendEnter ? "true" : "false"));
             sb.AppendLine("}");
@@ -73,14 +68,6 @@ namespace NEIDFill.Core.Settings
                     throw;
                 }
             }
-        }
-
-        /// <summary>端口范围保护：取不到或负数用 0（自动探测），上限 9999。</summary>
-        private static int ClampPort(int p)
-        {
-            if (p < 0) return 0;
-            if (p > 9999) return 9999;
-            return p;
         }
     }
 }

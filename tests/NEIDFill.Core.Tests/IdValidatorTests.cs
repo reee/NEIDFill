@@ -9,6 +9,7 @@ namespace NEIDFill.Core.Tests
         // GB 11643 校验位已核对的合法号
         const string ValidX = "11010519491231002X";   // 末位 X
         const string ValidNum = "110101199003071233"; // 末位数字
+        const string ValidGat = "830000199001011234"; // 830000 台湾居民居住证号段
 
         [TestMethod]
         public void 合法号_末位X()
@@ -26,6 +27,12 @@ namespace NEIDFill.Core.Tests
         }
 
         [TestMethod]
+        public void 合法号_83台湾居民居住证()
+        {
+            Assert.IsTrue(IdValidator.IsValid(ValidGat));
+        }
+
+        [TestMethod]
         public void 小写x归一化后合法()
         {
             Assert.IsTrue(IdValidator.IsValid("11010519491231002x"));
@@ -35,6 +42,13 @@ namespace NEIDFill.Core.Tests
         public void 前后空白归一化后合法()
         {
             Assert.IsTrue(IdValidator.IsValid("  11010519491231002X  "));
+        }
+
+        // 去除全部 Unicode 空白的回归：U+3000 全角空格与制表符（旧实现只删半角空格）
+        [TestMethod]
+        public void 全角空格与制表符归一化后合法()
+        {
+            Assert.IsTrue(IdValidator.IsValid("\u3000 110105\t19491231 002X\u3000"));
         }
 
         [TestMethod]

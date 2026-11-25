@@ -20,7 +20,7 @@ namespace NEIDFill
         private const ushort VK_RETURN = 0x0D;
 
         private static readonly int SelfPid = Process.GetCurrentProcess().Id;
-        private static readonly int InputSize = Marshal.SizeOf(typeof(INPUT));
+        private static readonly int InputSize = Marshal.SizeOf<INPUT>();
 
         // ================================================================ Win32
 
@@ -145,7 +145,7 @@ namespace NEIDFill
                 if (kind != ForegroundKind.Other || hwnd != expectedHwnd)
                 {
                     res.TypedChars = i;
-                    res.Error = "前台窗口已变化，已键入 " + i + "/" + text.Length + " 个字符";
+                    res.Error = "前台已变化";
                     return res;
                 }
 
@@ -155,7 +155,7 @@ namespace NEIDFill
                 if (SendInput((uint)pair.Length, pair, InputSize) != pair.Length)
                 {
                     res.TypedChars = i;
-                    res.Error = "系统拒绝键盘注入（目标程序可能以管理员权限运行）";
+                    res.Error = "注入被拒绝（目标可能是管理员）";
                     return res;
                 }
                 if (intervalMs > 0) Thread.Sleep(intervalMs);
@@ -173,7 +173,7 @@ namespace NEIDFill
                 if (kind != ForegroundKind.Other || hwnd != expectedHwnd)
                 {
                     res.EnterSent = false;
-                    res.Error = "号码已键入，但回车发送失败：前台窗口已变化";
+                    res.Error = "回车未发送：前台已变化";
                     return res;
                 }
 
@@ -183,7 +183,7 @@ namespace NEIDFill
                 if (SendInput((uint)pair.Length, pair, InputSize) != pair.Length)
                 {
                     res.EnterSent = false;
-                    res.Error = "号码已键入，但回车发送失败：系统拒绝键盘注入（目标程序可能以管理员权限运行）";
+                    res.Error = "回车未发送：注入被拒绝";
                     return res;
                 }
                 res.EnterSent = true;
