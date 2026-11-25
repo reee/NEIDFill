@@ -37,7 +37,6 @@ namespace NEIDFill
 
         // —— 控件 ——
         private Label _status;
-        private Label _nameValue;
         private CheckBox _autoReadCheck;
         private CheckBox _autoTypeCheck;
         private CheckBox _appendEnterCheck;
@@ -75,43 +74,19 @@ namespace NEIDFill
             try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch (Exception) { }
 
             int w = 470;
-            ClientSize = new Size(w, 250);
+            ClientSize = new Size(w, 210);
 
             // —— 顶部状态 ——
             _status = new Label
             {
-                Location = new Point(16, 14),
-                Size = new Size(w - 32, 24),
+                Location = new Point(16, 16),
+                Size = new Size(w - 32, 32),
+                Font = new Font("Microsoft YaHei UI", 12F),
                 AutoEllipsis = true,
                 ForeColor = Gray,
                 Text = "正在连接读卡器……",
             };
             Controls.Add(_status);
-
-            // —— 中部浅灰卡片：只有一行姓名（号码不再上界面）——
-            var card = new Panel
-            {
-                Location = new Point(16, 44),
-                Size = new Size(w - 32, 48),
-                BackColor = Color.FromArgb(0xF4, 0xF4, 0xF4),
-            };
-            var lblName = new Label
-            {
-                Text = "姓名",
-                AutoSize = true,
-                ForeColor = Gray,
-                Location = new Point(12, 12),
-            };
-            _nameValue = new Label
-            {
-                Text = "",
-                AutoSize = true,
-                MaximumSize = new Size(card.Width - 80, 0),
-                Location = new Point(52, 12),
-            };
-            card.Controls.Add(lblName);
-            card.Controls.Add(_nameValue);
-            Controls.Add(card);
 
             // —— 自动读卡开关（仅界面态，不写设置文件）——
             _autoReadCheck = new CheckBox
@@ -119,7 +94,7 @@ namespace NEIDFill
                 Text = "自动读卡",
                 AutoSize = true,
                 Checked = true,
-                Location = new Point(18, 104),
+                Location = new Point(18, 60),
             };
             _autoReadCheck.CheckedChanged += (s, e) => ApplyAutoReadState();
             Controls.Add(_autoReadCheck);
@@ -130,14 +105,14 @@ namespace NEIDFill
                 Text = "自动填入前台输入框",
                 AutoSize = true,
                 Checked = _settings.AutoType,
-                Location = new Point(110, 104),
+                Location = new Point(110, 60),
             };
             _appendEnterCheck = new CheckBox
             {
                 Text = "输入后回车",
                 AutoSize = true,
                 Checked = _settings.AppendEnter,
-                Location = new Point(265, 104),
+                Location = new Point(265, 60),
             };
             _autoTypeCheck.CheckedChanged += (s, e) =>
             {
@@ -158,20 +133,20 @@ namespace NEIDFill
                 Text = "端口",
                 AutoSize = true,
                 ForeColor = Gray,
-                Location = new Point(16, 140),
+                Location = new Point(16, 96),
             };
             _portBox = new NumericUpDown
             {
                 Minimum = 0,
                 Maximum = 9999,
                 Value = _settings.ReaderPort,
-                Location = new Point(54, 136),
+                Location = new Point(54, 92),
                 Size = new Size(70, 26),
             };
             _applyBtn = new Button
             {
                 Text = "应用",
-                Location = new Point(134, 134),
+                Location = new Point(134, 90),
                 Size = new Size(64, 30),
             };
             _applyBtn.Click += (s, e) => ApplyPort();
@@ -180,7 +155,7 @@ namespace NEIDFill
                 Text = "0 = 自动探测",
                 AutoSize = true,
                 ForeColor = Gray,
-                Location = new Point(210, 140),
+                Location = new Point(210, 96),
             };
             Controls.Add(lblPort);
             Controls.Add(_portBox);
@@ -192,7 +167,7 @@ namespace NEIDFill
             {
                 Text = "使用前把光标放进目标输入框并清空；本程序在前台或桌面时不会填入。同号 2 秒内只填一次。",
                 ForeColor = Gray,
-                Location = new Point(16, 178),
+                Location = new Point(16, 134),
                 Size = new Size(w - 32, 56),
             };
             Controls.Add(hint);
@@ -301,7 +276,6 @@ namespace NEIDFill
             string name = snap.Name ?? "";
             // 状态栏只显示姓名，不显示完整号码（id 仅用于判定与键入）
             string who = string.IsNullOrEmpty(name) ? "（无姓名）" : name;
-            Post(() => { _nameValue.Text = name; });
 
             ForegroundKind kind = KeyboardTyper.GetForeground(out _, out IntPtr fgHwnd);
             TypeDecision decision = TypeGuard.Decide(
