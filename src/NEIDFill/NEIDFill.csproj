@@ -5,7 +5,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>NEIDFill</RootNamespace>
     <AssemblyName>NEIDFill</AssemblyName>
-    <!-- 占位图标（复制自原工程），更换品牌图标时替换 app.ico 即可 -->
+    <!-- 占位图标，更换品牌图标时替换 app.ico 即可 -->
     <ApplicationIcon>app.ico</ApplicationIcon>
     <!-- DPI 感知声明（asInvoker + system dpiAware），见 app.manifest -->
     <ApplicationManifest>app.manifest</ApplicationManifest>
