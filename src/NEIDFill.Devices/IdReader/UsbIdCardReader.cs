@@ -9,8 +9,9 @@ namespace NEIDFill.Devices.IdReader
     /// USB 身份证读卡器（sdtapi.dll A-family + Routon 三类卡分流）。
     /// 会话/轮询/复位行为模型移植自 NECapture 对精伦 iDR240 的实机确证：
     /// 1) InitComm(1001)==1 后保持会话不断开（原程序 worker 同款）；
-    /// 2) Read() 先用 CardOn() 安静等待卡在位（无卡时不计时间、不报错），卡在位后才开尝试预算轮询 Authenticate()；
-    ///    Authenticate() 仅在「新鲜放卡事件」后短暂返回 1：卡静置时认证结果不可靠，需要「拿开几秒再平放」产生边沿；
+    /// 2) Read() 无条件高频轮询 Authenticate()（原程序 worker 同款）：Authenticate()==1 是「新鲜放卡」的唯一可靠边沿，
+    ///    任何前置 CardOn 调用都可能把该边沿推迟，某些固件首次读卡前 CardOn 甚至恒为 0，故绝不用 CardOn 做读取门控；
+    ///    CardOn() 只作「卡在位」诊断：连续在位超过尝试预算仍未读成才报错，无卡在位期间做空闲自愈；
     /// 3) 认证 1 后先 Routon_DecideIDCardType() 判型再按型读取；返回码可能瞬时 -4，300ms 级重试可恢复；
     ///    返回 1=新读（数据有效），0=缓存读（防同卡连读的关键防线，一律视为失败继续轮询）。
     /// 本程序只取号码不读回人像：芯片人像由厂商 DLL 写入临时目录内 photo.jpg，本类只负责清理该临时文件。
@@ -90,70 +91,71 @@ namespace NEIDFill.Devices.IdReader
             string failureMessage = null;
             try
             {
+                // 无条件高频轮询 Authenticate()，不用 CardOn 做任何前置门控（参见类注释第 2 条）
+                string lastFailure = null;
+                // 用差值而非 deadline 比较：TickCount 在系统运行 ~24.9 天后溢出为负，直接比较会瞬间超时
+                int idleStart = Environment.TickCount; // 无卡计时起点（空闲重建用）
+                int onSince = Environment.TickCount;   // 连续在位起点
+                bool onCard = false;                   // 当前是否判定为在位
                 while (failureMessage == null)
                 {
-                    // 安静等待卡在位：无卡时既不报错也不计时（空闲态不闪灯、不报假错误）
-                    // 空闲自愈：每 60 秒静默重建会话，读卡器被拔插后旧句柄失效也能恢复；只在无卡分支做，不影响正常读卡
-                    int idleStart = Environment.TickCount;
-                    while (true)
+                    // 取消优先：每轮先查 _cancelRead，重建也不吞取消
+                    if (_cancelRead) throw new OperationCanceledException("读卡已取消");
+
+                    if (SdtNative.Authenticate() == 1)
                     {
-                        // 取消优先：每轮先查 _cancelRead，重建也不吞取消
-                        if (_cancelRead) throw new OperationCanceledException("读卡已取消");
-                        if (SdtNative.CardOn() == 1) break;
+                        // 每次读卡前清掉上一张的人像文件：临时 photo.jpg 绝不在两次读卡之间驻留
+                        TryDeletePhoto();
+
+                        IdCardSnapshot snap;
+                        string failure;
+                        int type = SdtNative.Routon_DecideIDCardType();
+                        if (type == 100) ReadNormal(out snap, out failure);
+                        else if (type == 101) ReadForeign(out snap, out failure);
+                        else if (type == 102) ReadGat(out snap, out failure);
+                        else if (type > 0)
+                        {
+                            snap = null;
+                            failure = "未识别的卡类型（" + type + "）。支持：大陆居民身份证、外国人永久居留证、港澳台居民居住证";
+                        }
+                        else
+                        {
+                            snap = null;
+                            failure = "证件类型判定失败（返回码 " + type + "），请重新放卡";
+                        }
+
+                        if (snap != null) return snap;
+                        // 返回码瞬时 -4 / 缓存读 / 号码不完整：记下分型原因，下个轮询拍重试（实测 300ms 级重试可恢复）。
+                        lastFailure = failure;
+                    }
+
+                    // CardOn 仅作在位诊断：连续在位达预算仍没读成才报错；卡拿开则重置在位计时，不算失败
+                    if (SdtNative.CardOn() == 1)
+                    {
+                        if (!onCard) { onCard = true; onSince = Environment.TickCount; }
+                        idleStart = Environment.TickCount; // 卡在位期间不累计无卡空闲时间
+                        if (unchecked(Environment.TickCount - onSince) >= ReadBudgetMs)
+                        {
+                            // 预算内从未认证成功则报认证未就绪，否则报最近一次分型失败原因
+                            failureMessage = lastFailure ??
+                                "已检测到证件，但认证未就绪。请将证件拿开 3 秒后重新平放在读卡器正中央";
+                        }
+                    }
+                    else
+                    {
+                        onCard = false;
+                        // 无卡空闲自愈：每 60 秒静默重建会话，读卡器被拔插后旧句柄失效也能恢复；
+                        // 静默重建（不碰 _cancelRead）；失败说明设备确实不在，_open 已置 false，
+                        // 抛异常交上层走 !IsConnected → TryConnect 的自动重试路径，设备插回后自愈
                         if (unchecked(Environment.TickCount - idleStart) >= IdleReconnectMs)
                         {
-                            // 静默重建（不碰 _cancelRead）；失败说明设备确实不在，_open 已置 false，
-                            // 抛异常交上层走 !IsConnected → TryConnect 的自动重试路径，设备插回后自愈
                             if (!TryConnectCore(out _))
                                 throw new InvalidOperationException("读卡器连接已断开，正在重新连接……");
                             idleStart = Environment.TickCount;
                         }
-                        Thread.Sleep(PollIntervalMs);
                     }
 
-                    // 卡在位后才开一次 30 秒尝试预算；期间卡被拿开则回安静等待、预算重置，不算失败
-                    string lastFailure = null;
-                    // 用差值而非 deadline 比较：TickCount 在系统运行 ~24.9 天后溢出为负，直接比较会瞬间超时
-                    int start = Environment.TickCount;
-                    bool cardLeft = false;
-                    while (unchecked(Environment.TickCount - start) < ReadBudgetMs)
-                    {
-                        if (_cancelRead) throw new OperationCanceledException("读卡已取消");
-                        if (SdtNative.CardOn() != 1) { cardLeft = true; break; }
-
-                        if (SdtNative.Authenticate() == 1)
-                        {
-                            // 每次读卡前清掉上一张的人像文件：临时 photo.jpg 绝不在两次读卡之间驻留
-                            TryDeletePhoto();
-
-                            IdCardSnapshot snap;
-                            string failure;
-                            int type = SdtNative.Routon_DecideIDCardType();
-                            if (type == 100) ReadNormal(out snap, out failure);
-                            else if (type == 101) ReadForeign(out snap, out failure);
-                            else if (type == 102) ReadGat(out snap, out failure);
-                            else if (type > 0)
-                            {
-                                snap = null;
-                                failure = "未识别的卡类型（" + type + "）。支持：大陆居民身份证、外国人永久居留证、港澳台居民居住证";
-                            }
-                            else
-                            {
-                                snap = null;
-                                failure = "证件类型判定失败（返回码 " + type + "），请重新放卡";
-                            }
-
-                            if (snap != null) return snap;
-                            // 返回码瞬时 -4 / 缓存读 / 号码不完整：记下分型原因，下个轮询拍重试（实测 300ms 级重试可恢复）。
-                            lastFailure = failure;
-                        }
-                        Thread.Sleep(PollIntervalMs);
-                    }
-                    if (cardLeft) continue;
-
-                    // 预算内从未认证通过则报认证未就绪，否则报最近一次分型失败原因
-                    failureMessage = lastFailure ??
-                        "已检测到证件，但认证未就绪。请将证件拿开 3 秒后重新平放在读卡器正中央";
+                    Thread.Sleep(PollIntervalMs);
                 }
             }
             catch (OperationCanceledException) { throw; }
