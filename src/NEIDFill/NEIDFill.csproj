@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>NEIDFill</RootNamespace>
+    <AssemblyName>NEIDFill</AssemblyName>
+    <!-- 占位图标（复制自原工程），更换品牌图标时替换 app.ico 即可 -->
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <!-- DPI 感知声明（asInvoker + system dpiAware），见 app.manifest -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <!-- 厂商原生库（见 libs\README.md）：Sdtapi.dll 必须是 sfzscan 版（含 Routon_* 三类卡导出） -->
+    <None Include="..\..\libs\Sdtapi.dll" CopyToOutputDirectory="PreserveNewest" Link="Sdtapi.dll" />
+    <None Include="..\..\libs\Dewlt.dll" CopyToOutputDirectory="PreserveNewest" Link="Dewlt.dll" />
+    <None Include="..\..\libs\SavePhoto.dll" CopyToOutputDirectory="PreserveNewest" Link="SavePhoto.dll" />
+    <None Include="..\..\libs\WltRS.dll" CopyToOutputDirectory="PreserveNewest" Link="WltRS.dll" />
+    <None Include="..\..\libs\JpgDll.dll" CopyToOutputDirectory="PreserveNewest" Link="JpgDll.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\NEIDFill.Core\NEIDFill.Core.csproj" />
+    <ProjectReference Include="..\NEIDFill.Devices\NEIDFill.Devices.csproj" />
+  </ItemGroup>
+</Project>

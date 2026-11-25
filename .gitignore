@@ -1,0 +1,61 @@
+# ---------------------------------------------------------------------------
+# NEIDFill — .NET Framework (net48) / WinForms / x86
+# 说明：libs/ 下的原生 DLL 是必读依赖（Sdtapi 等），不要忽略；
+# 只忽略编译产物与运行时数据。
+# ---------------------------------------------------------------------------
+
+# ---- 编译产物 ----
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+[Ll]og/
+x64/
+x86/
+*.exe
+*.dll
+*.pdb
+*.obj
+
+# 但 libs/ 内的第三方原生库必须纳入版本控制（保证可构建）
+!libs/*.dll
+
+# ---- IDE / 编辑器 ----
+.vs/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+.vscode/
+
+# ---- NuGet ----
+packages/
+*.nupkg
+*.snupkg
+
+# ---- 发布产物 ----
+dist/
+
+# ---- 本地截图等 ----
+artifacts/
+
+# ---- 测试 / 覆盖率 ----
+[Tt]est[Rr]esult*/
+*.trx
+coverage*.json
+coverage*.xml
+coverage*.info
+TestResults/
+
+# ---- 运行时数据（程序在输出目录或现场生成，勿入库）----
+neidfill.json
+neidfill.json.tmp
+crash.log
+*.log
+
+# ---- 操作系统 ----
+Thumbs.db
+ehthumbs.db
+.DS_Store

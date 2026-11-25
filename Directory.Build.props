@@ -1,0 +1,17 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>7.3</LangVersion>
+    <!-- 版本策略：AssemblyVersion/ProductVersion 固定 1.0.0（稳定，不随构建漂移）；
+         构建时刻只进 FileVersion，格式 yyyy.MM.dd.HHmm（如 2026.11.25.1530），供 UI 标题与文件属性展示。 -->
+    <Version>1.0.0</Version>
+    <FileVersion>$([System.DateTime]::Now.ToString('yyyy.MM.dd.HHmm'))</FileVersion>
+    <Product>NEIDFill</Product>
+    <!-- Sdtapi.dll 仅有 32 位版本，整个产品必须按 x86 构建 -->
+    <PlatformTarget>x86</PlatformTarget>
+    <!-- 确定性编译只对同一输入成立：FileVersion 含构建时刻，不同时刻产物字节必然不同 -->
+    <Deterministic>true</Deterministic>
+    <DebugType>portable</DebugType>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+</Project>

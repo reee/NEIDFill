@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0" xmlns:asmv3="urn:schemas-microsoft-com:asm.v3">
+  <assemblyIdentity version="1.0.0.0" name="NEIDFill.app" />
+
+  <!-- 普通用户权限运行：不 UAC 提权（提权后反而无法向普通权限目标窗口注入） -->
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+    <security>
+      <requestedPrivileges>
+        <requestedExecutionLevel level="asInvoker" uiAccess="false" />
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+
+  <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
+    <application>
+      <!-- Windows 8.1 -->
+      <supportedOS Id="{1f676c76-80e1-4239-95bb-83d0f6d0da78}" />
+      <!-- Windows 10 / 11 -->
+      <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}" />
+    </application>
+  </compatibility>
+
+  <!-- 系统级 DPI 感知：声明后系统不再位图拉伸，控件缩放只走 WinForms AutoScaleMode.Dpi 一条路
+       （刻意不用 PerMonitorV2，避免每显示器缩放差异带来的布局风险） -->
+  <asmv3:application>
+    <asmv3:windowsSettings xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">
+      <dpiAware>true</dpiAware>
+    </asmv3:windowsSettings>
+  </asmv3:application>
+</assembly>
