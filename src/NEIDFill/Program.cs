@@ -11,7 +11,7 @@ namespace NEIDFill
     /// NEIDFill 入口：读卡→把号码键入当前前台输入框的独立小工具。
     /// 同一读卡器硬件只允许一个实例占用（原生设备独占），互斥锁防双开互抢；
     /// 第二实例不重复运行，而是通过命名事件让第一实例显示/激活窗口。
-    /// 设置与 crash.log 存于 %LOCALAPPDATA%\NEIDFill（部署目录无需可写）。
+    /// 设置存程序目录 neidfill.ini；crash.log 存 %LOCALAPPDATA%\NEIDFill（不可用时回退程序目录/临时目录）。
     /// </summary>
     internal static class Program
     {
@@ -71,24 +71,9 @@ namespace NEIDFill
             FillForm form = null;
             try
             {
-                // 独立设置文件 neidfill.json（存于 %LOCALAPPDATA%\NEIDFill）
-                string settingsPath = Path.Combine(GetDataDir(), "neidfill.json");
-                string legacyPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "neidfill.json");
-                FillSettings settings;
-                if (!string.Equals(settingsPath, legacyPath, StringComparison.OrdinalIgnoreCase) &&
-                    !File.Exists(settingsPath) && File.Exists(legacyPath))
-                {
-                    // 首次启动：把旧版程序目录里的设置搬进新位置（旧文件保留不删）。
-                    // 直接用 legacy 对象作 settings：新位置写入失败时旧值也不丢（不能回读缺失的新文件）
-                    settings = FillSettings.Load(legacyPath);
-                    try { settings.Save(settingsPath); }
-                    catch (Exception) { }
-                }
-                else
-                {
-                    settings = FillSettings.Load(settingsPath);
-                }
-                form = new FillForm(settings, settingsPath);
+                // 独立设置文件 neidfill.ini（存于程序目录）
+                string settingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "neidfill.ini");
+                form = new FillForm(FillSettings.Load(settingsPath), settingsPath);
                 // 强制创建句柄：否则第一实例 Show 之前第二实例 Set()，回调因 !IsHandleCreated 丢信号
                 // （仍在 try 内：句柄创建异常走启动兜底路径；Shown 触发时机不受影响）
                 _ = form.Handle;

@@ -50,8 +50,7 @@ coverage*.info
 TestResults/
 
 # ---- 运行时数据（程序在输出目录或现场生成，勿入库）----
-neidfill.json
-neidfill.json.tmp
+neidfill.ini
 crash.log
 *.log
 
