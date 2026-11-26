@@ -15,8 +15,8 @@ dotnet test NEIDFill.sln
 `.pdb` 可省略。
 
 运行前提：.NET Framework 4.8；x86-only（厂商 Sdtapi.dll 仅 32 位）；Windows 8.1 / 10 / 11
-（app.manifest 已声明 supportedOS）。设置写在程序目录的 `neidfill.ini`，因此部署目录需可写；
-崩溃日志存放在 `%LOCALAPPDATA%\NEIDFill\`（见「设置与日志」）。
+（app.manifest 已声明 supportedOS）。部署目录无需可写：设置与崩溃日志存放在
+`%LOCALAPPDATA%\NEIDFill\`（见「设置与日志」）。
 
 ## 版本
 
@@ -71,9 +71,9 @@ dotnet test NEIDFill.sln
 
 ## 设置与日志
 
-- 设置存于程序目录的 `neidfill.ini`（两行 `key=value`：自动填入、追加回车）；
+- 设置存于 `%LOCALAPPDATA%\NEIDFill\neidfill.ini`（两行 `key=value`：自动填入、追加回车）；
   文件缺失或不可读时使用默认值，无法识别的行被静默忽略；保存失败会在「上次结果」行提示。
-- 程序目录需可写才能记住设置；安装到只读目录时程序仍可运行，但每次启动回到默认值。
+- `%LOCALAPPDATA%` 不可用时回退到程序目录（此时需程序目录可写才能保存设置）。
 - 未处理异常写入 `%LOCALAPPDATA%\NEIDFill\crash.log`（不可用时回退程序目录与临时目录）；
   UI 线程异常限流弹窗，进程不无声退出；日志中的 18 位身份证号脱敏，单文件超过 1MiB 自动截断。
 

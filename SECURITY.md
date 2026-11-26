@@ -9,11 +9,8 @@
 
 ## 部署建议
 
-- 设置文件 `neidfill.ini` 写在程序目录，因此要记住设置，安装目录必须对当前用户可写。
-  若安装到仅管理员可写的目录（如 `Program Files`），程序仍可运行，但设置不会保存（界面会提示保存失败）；
-  需要持久化设置时请装到当前用户可写目录（如 `%LOCALAPPDATA%\Programs\NEIDFill`）。
-- 程序目录可写会带来「DLL 侧加载」风险：请确保该目录仅当前用户可写，不要放在共享或全员可写路径。
-- 崩溃日志 `crash.log` 写在 `%LOCALAPPDATA%\NEIDFill\`（不可用时回退程序目录与临时目录）。
+- 建议安装到仅管理员可写的目录（如 `Program Files`）。设置与日志存放于 `%LOCALAPPDATA%\NEIDFill\`，
+  程序目录无需可写，可避免「程序目录可写 → DLL 侧加载」的风险。
 - `libs\` 下的厂商原生 DLL 无再分发授权，仅在内部构建部署；详见 `THIRD-PARTY-NOTICES.md`。
 
 ## 已知边界

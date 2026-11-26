@@ -28,10 +28,10 @@
 
 ### 工程化
 
-- 设置改为程序目录的 `neidfill.ini`（两行 `key=value` 纯文本），部署目录需可写才能记住设置；
-  移除手写 JSON 设置解析器、临时文件原子写与旧版设置迁移逻辑。文件缺失或不可读时使用默认值、
-  无法识别的行被忽略，保存失败在「上次结果」行提示。
-- `crash.log` 迁至 `%LOCALAPPDATA%\NEIDFill\`（不可用时回退程序目录与临时目录）。
+- 设置与 `crash.log` 存放于 `%LOCALAPPDATA%\NEIDFill\`（不可用时回退程序目录与临时目录），
+  程序目录无需可写。
+- 设置改为两行 `key=value` 纯文本（`neidfill.ini`），移除手写 JSON 解析器、临时文件原子写与
+  旧版设置迁移逻辑；文件缺失或不可读时使用默认值、无法识别的行被忽略，保存失败在「上次结果」行提示。
 - 无卡轮询降为 400ms，卡在位保持 150ms。
 - CI 固定 GitHub Actions 到 commit SHA、上传发布 zip 产物、新增 Dependabot。
 - 启用 .NET 分析器（Recommended）并以 `-warnaserror` 守住零警告；`NEIDFill.Core` 开启 nullable。

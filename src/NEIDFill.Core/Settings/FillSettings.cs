@@ -4,7 +4,8 @@ using System.IO;
 namespace NEIDFill.Core.Settings
 {
     /// <summary>NEIDFill（读卡→键入前台）小工具的设置。
-    /// 存为程序目录 neidfill.ini，两行 key=value 纯文本（旧版 readerPort 一类未知行一律忽略）。</summary>
+    /// 存为 neidfill.ini（默认 %LOCALAPPDATA%\NEIDFill），两行 key=value 纯文本
+    /// （旧版 readerPort 一类未知行一律忽略）。</summary>
     public sealed class FillSettings
     {
         /// <summary>读卡后自动键入前台输入框。</summary>
